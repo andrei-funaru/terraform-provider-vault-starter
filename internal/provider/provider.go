@@ -16,7 +16,7 @@ import (
 
 const (
 	envVaultAddr      = "VAULT_ADDR"
-	provider          = "vault-unseal"
+	provider          = "vault-starter"
 	resInit           = provider + "_init"
 	resUnseal         = provider + "_unseal"
 	argVaultUrl       = "vault_url"
