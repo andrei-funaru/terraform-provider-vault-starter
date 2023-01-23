@@ -27,17 +27,15 @@ const (
 func resourceUnseal() *schema.Resource {
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
-		Description: "Resource for vault operator init",
+		Description: "Resource for vault operator unseal",
 
 		CreateContext: resourceUnsealCreate,
 		ReadContext:   resourceUnsealRead,
 		UpdateContext: resourceUnsealUpdate,
 		DeleteContext: resourceUnsealDelete,
-		Importer:      &schema.ResourceImporter{},
-
 		Schema: map[string]*schema.Schema{
 			argSecretSharesUnseal: {
-				Description: "Specifies the number of shares to split the master key into.",
+				Description: "Specifies the number of shares the master key was split  into.",
 				Type:        schema.TypeInt,
 				Optional:    true,
 			},
@@ -50,6 +48,8 @@ func resourceUnseal() *schema.Resource {
 				Description: "The unseal keys.",
 				Type:        schema.TypeList,
 				Optional:    false,
+				Computed:    false,
+				Required:    true,
 			},
 		},
 	}
@@ -61,11 +61,7 @@ func resourceUnsealCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	// SecretThresholdUnseal := d.Get(argSecretThresholdUnseal).(int)
 	// SecretSharesUnseal := d.Get(argSecretSharesUnseal).(int)
 	KeysUnseal := d.Get(argKeysUnseal).([]interface{})
-
-	// stopCh control the port forwarding lifecycle. When it gets closed the
-	// port forward will terminate
 	stopCh := make(chan struct{}, 1)
-	// readyCh communicate when the port forward is ready to get traffic
 	readyCh := make(chan struct{})
 
 	if kubeConfig := client.kubeConn.kubeConfig; kubeConfig != nil {
@@ -76,9 +72,6 @@ func resourceUnsealCreate(ctx context.Context, d *schema.ResourceData, meta inte
 		remotePort := client.kubeConn.remotePort
 
 		errCh := make(chan error, 1)
-
-		// managing termination signal from the terminal. As you can see the stopCh
-		// gets closed to gracefully handle its termination.
 		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 		go func() {
@@ -203,9 +196,5 @@ func resourceUnsealUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 }
 
 func resourceUnsealDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	return diag.Diagnostics{}
-}
-
-func resourceUnsealImporter(c context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	return diag.Diagnostics{}
 }
