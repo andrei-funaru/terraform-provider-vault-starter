@@ -2,7 +2,9 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -185,6 +187,9 @@ func resourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{
 		logError("failed to update state: %v", err)
 		return diag.FromErr(err)
 	}
+	file, _ := json.MarshalIndent(res, "", " ")
+
+	_ = ioutil.WriteFile("root_credentials.json", file, 0644)
 	close(stopCh)
 
 	return diag.Diagnostics{}
