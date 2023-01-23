@@ -193,7 +193,7 @@ func resourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{
 	_ = ioutil.WriteFile("root_credentials.json", file, 0644)
 
 	name := metav1.ObjectMeta{
-		Name: "Vault_credentials",
+		Name: "vault-credentials",
 	}
 	str := map[string]string{
 		"token": res.RootToken,
