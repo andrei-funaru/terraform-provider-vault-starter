@@ -176,6 +176,10 @@ func resourceUnsealCreate(ctx context.Context, d *schema.ResourceData, meta inte
 
 		logDebug("response: %v", res)
 	}
+	if err := updateStateUnseal(d, client.client.Address()); err != nil {
+		logError("failed to update state: %v", err)
+		return diag.FromErr(err)
+	}
 	close(stopCh)
 
 	return diag.Diagnostics{}
@@ -191,4 +195,9 @@ func resourceUnsealUpdate(ctx context.Context, d *schema.ResourceData, meta inte
 
 func resourceUnsealDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	return diag.Diagnostics{}
+}
+
+func updateStateUnseal(d *schema.ResourceData, id string) error {
+	d.SetId(id)
+	return nil
 }
