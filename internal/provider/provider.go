@@ -18,8 +18,8 @@ import (
 const (
 	envVaultAddr      = "VAULT_ADDR"
 	provider          = "vault-starter"
-	resInit           = provider + "_init"
-	resUnseal         = provider + "_unseal"
+	resInit           = provider + "-init"
+	resUnseal         = provider + "-unseal"
 	argVaultAddr      = "vault_addr"
 	argRequestHeaders = "request_headers"
 	argKubeConfig     = "kube_config"
