@@ -171,9 +171,8 @@ func resourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{
 		logError("failed to initialize Vault: %v", err)
 		return diag.FromErr(err)
 	}
-	Keys_UnsealList := make([]string, len(res.Keys))
 	for i := range res.Keys {
-		res, err := client.client.Sys().Unseal(Keys_UnsealList[i])
+		res, err := client.client.Sys().Unseal(res.Keys[i])
 
 		if err != nil {
 			logError("failed to unseal Vault: %v", err)
