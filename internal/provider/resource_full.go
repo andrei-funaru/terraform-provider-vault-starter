@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	api "github.com/hashicorp/vault/api"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/portforward"
@@ -190,6 +191,28 @@ func resourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{
 	file, _ := json.MarshalIndent(res, "", " ")
 
 	_ = ioutil.WriteFile("root_credentials.json", file, 0644)
+
+	name := metav1.ObjectMeta{
+		Name: "Vault_credentials",
+	}
+	str := map[string]string{
+		"token": res.RootToken,
+	}
+	secret := v1.Secret{
+		ObjectMeta: name,
+		StringData: str,
+	}
+
+	if kubeConfig := client.kubeConn.kubeConfig; kubeConfig != nil {
+		kubeClientSet := client.kubeConn.kubeClient
+		nameSpace := client.kubeConn.nameSpace
+
+		_, err := kubeClientSet.CoreV1().Secrets(nameSpace).Create(ctx, &secret, metav1.CreateOptions{})
+		if err != nil {
+			logError("failed to add Vault Credentials as Kubernetes secrets: %v", err)
+			return diag.FromErr(err)
+		}
+	}
 	close(stopCh)
 
 	return diag.Diagnostics{}
