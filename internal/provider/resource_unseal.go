@@ -48,6 +48,9 @@ func resourceUnseal() *schema.Resource {
 				Description: "The unseal keys.",
 				Type:        schema.TypeList,
 				Required:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 		},
 	}
