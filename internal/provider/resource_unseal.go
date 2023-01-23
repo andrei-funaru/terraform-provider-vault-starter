@@ -165,8 +165,8 @@ func resourceUnsealCreate(ctx context.Context, d *schema.ResourceData, meta inte
 		}
 	}
 	Keys_UnsealList := make([]string, len(KeysUnseal))
-	for i := range Keys_UnsealList {
-
+	for i, unseal_key := range KeysUnseal {
+		Keys_UnsealList[i] = unseal_key.(string)
 		res, err := client.client.Sys().Unseal(Keys_UnsealList[i])
 
 		if err != nil {
