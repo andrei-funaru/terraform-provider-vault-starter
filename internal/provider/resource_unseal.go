@@ -2,15 +2,11 @@ package provider
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -37,9 +33,7 @@ func resourceUnseal() *schema.Resource {
 		ReadContext:   resourceUnsealRead,
 		UpdateContext: resourceUnsealUpdate,
 		DeleteContext: resourceUnsealDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: resourceUnsealImporter,
-		},
+		Importer:      &schema.ResourceImporter{},
 
 		Schema: map[string]*schema.Schema{
 			argSecretSharesUnseal: {
@@ -201,59 +195,17 @@ func resourceUnsealCreate(ctx context.Context, d *schema.ResourceData, meta inte
 }
 
 func resourceUnsealRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// use the meta value to retrieve your client from the provider configure method
-	// client := meta.(*apiClient)
-
 	return diag.Diagnostics{}
 }
 
 func resourceUnsealUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// use the meta value to retrieve your client from the provider configure method
-	// client := meta.(*apiClient)
-
 	return diag.Diagnostics{}
 }
 
 func resourceUnsealDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// use the meta value to retrieve your client from the provider configure method
-	// client := meta.(*apiClient)
-
 	return diag.Diagnostics{}
 }
 
-func resourceUnsealImporter(c context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	// client := meta.(*apiClient)
-	// Id should be a file scheme URL: file://path_to_file.json
-	// The json file schema should be the same as what's returned from the sys/init API (i.e. a InitResponse)
-	id := d.Id()
-
-	u, err := url.Parse(id)
-	if err != nil {
-		logError("failed parsing id url %v", err)
-		return nil, err
-	}
-
-	if u.Scheme != "file" {
-		logError("unsupported scheme")
-		return nil, errors.New("unsupported scheme")
-	}
-
-	fc, err := ioutil.ReadFile(filepath.Join(u.Host, u.Path))
-	if err != nil {
-		logError("failed reading file %v", err)
-		return nil, err
-	}
-
-	var unsealResponse api.SealStatusResponse
-	if err := json.Unmarshal(fc, &unsealResponse); err != nil {
-		logError("failed unmarshalling json: %v", err)
-		return nil, err
-	}
-
-	// if err := updateState(d, client.client.Address(), &unsealResponse); err != nil {
-	// 	logError("failed to update state: %v", err)
-	// 	return nil, err
-	// }
-
-	return []*schema.ResourceData{d}, nil
+func resourceUnsealImporter(c context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return diag.Diagnostics{}
 }
