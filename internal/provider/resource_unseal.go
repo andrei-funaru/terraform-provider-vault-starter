@@ -25,7 +25,7 @@ import (
 const (
 	argSecretSharesUnseal    = "secret_shares"
 	argSecretThresholdUnseal = "secret_threshold"
-	argKeysUnseal            = "keys"
+	argKeysUnseal            = "unseal_keys"
 )
 
 func resourceUnseal() *schema.Resource {
@@ -55,11 +55,7 @@ func resourceUnseal() *schema.Resource {
 			argKeysUnseal: {
 				Description: "The unseal keys.",
 				Type:        schema.TypeList,
-				Computed:    true,
-				Sensitive:   true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
+				Optional:    false,
 			},
 		},
 	}
@@ -182,8 +178,7 @@ func resourceUnsealCreate(ctx context.Context, d *schema.ResourceData, meta inte
 		}
 	}
 	Keys_UnsealList := make([]string, len(KeysUnseal))
-	for i, KeyUnseal := range KeysUnseal {
-		Keys_UnsealList[i] = KeyUnseal.(string)
+	for i := range Keys_UnsealList {
 
 		req := api.UnsealOpts{
 			Key: Keys_UnsealList[i],
@@ -199,10 +194,6 @@ func resourceUnsealCreate(ctx context.Context, d *schema.ResourceData, meta inte
 		}
 
 		logDebug("response: %v", res)
-		// if err := updateState(d, client.client.Address(), res); err != nil {
-		// 	logError("failed to update state: %v", err)
-		// 	return diag.FromErr(err)
-		// }
 	}
 	close(stopCh)
 
