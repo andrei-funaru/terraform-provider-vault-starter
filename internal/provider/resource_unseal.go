@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	api "github.com/hashicorp/vault/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/portforward"
@@ -168,13 +167,7 @@ func resourceUnsealCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	Keys_UnsealList := make([]string, len(KeysUnseal))
 	for i := range Keys_UnsealList {
 
-		req := api.UnsealOpts{
-			Key: Keys_UnsealList[i],
-		}
-
-		logDebug("request: %v", req)
-
-		res, err := client.client.Sys().UnsealWithOptions(&req)
+		res, err := client.client.Sys().Unseal(Keys_UnsealList[i])
 
 		if err != nil {
 			logError("failed to unseal Vault: %v", err)
