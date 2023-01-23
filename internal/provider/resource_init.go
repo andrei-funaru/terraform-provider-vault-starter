@@ -2,11 +2,15 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -20,19 +24,19 @@ import (
 )
 
 const (
-	argSecretShares       = "secret_shares"
-	argSecretThreshold    = "secret_threshold"
-	argStoredShares       = "stored_shares"
-	argRecoveryShares     = "recovery_shares"
-	argRecoveryThreshold  = "recovery_threshold"
-	argRecoveryKeys       = "recovery_keys"
-	argRecoveryKeysBase64 = "recovery_keys_base64"
-	argRootToken          = "root_token"
-	argKeys               = "init_keys"
-	argKeysBase64         = "keys_base64"
-	argPGPKeys            = "pgp_keys"
-	argRecoveryPGPKeys    = "recovery_pgp_keys"
-	argRootTokenPGPKey    = "root_token_pgp_key"
+	argSecretSharesInit       = "secret_shares"
+	argSecretThresholdInit    = "secret_threshold"
+	argStoredSharesInit       = "stored_shares"
+	argRecoverySharesInit     = "recovery_shares"
+	argRecoveryThresholdInit  = "recovery_threshold"
+	argRecoveryKeysInit       = "recovery_keys"
+	argRecoveryKeysBase64Init = "recovery_keys_base64"
+	argRootTokenInit          = "root_token"
+	argKeysInit               = "init_keys"
+	argKeysBase64Init         = "keys_base64"
+	argPGPKeysInit            = "pgp_keys"
+	argRecoveryPGPKeysInit    = "recovery_pgp_keys"
+	argRootTokenPGPKeyInit    = "root_token_pgp_key"
 )
 
 func resourceInit() *schema.Resource {
@@ -44,29 +48,32 @@ func resourceInit() *schema.Resource {
 		ReadContext:   resourceInitRead,
 		UpdateContext: resourceInitUpdate,
 		DeleteContext: resourceInitDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceInitImporter,
+		},
 
 		Schema: map[string]*schema.Schema{
-			argSecretShares: {
+			argSecretSharesInit: {
 				Description: "Specifies the number of shares to split the master key into.",
 				Type:        schema.TypeInt,
 				Optional:    true,
 			},
-			argSecretThreshold: {
+			argSecretThresholdInit: {
 				Description: "Specifies the number of shares required to reconstruct the master key.",
 				Type:        schema.TypeInt,
 				Optional:    true,
 			},
-			argRecoveryShares: {
+			argRecoverySharesInit: {
 				Description: "Specifies the number of shares to split the recovery key into.",
 				Type:        schema.TypeInt,
 				Optional:    true,
 			},
-			argRecoveryThreshold: {
+			argRecoveryThresholdInit: {
 				Description: "Specifies the number of shares required to reconstruct the recovery key.",
 				Type:        schema.TypeInt,
 				Optional:    true,
 			},
-			argPGPKeys: {
+			argPGPKeysInit: {
 				Description: "Specifies an array of PGP public keys used to encrypt the output unseal keys. Ordering is preserved. The keys must be base64-encoded from their original binary representation. The size of this array must be the same as secret_shares.",
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -74,7 +81,7 @@ func resourceInit() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			argRecoveryPGPKeys: {
+			argRecoveryPGPKeysInit: {
 				Description: "Specifies an array of PGP public keys used to encrypt the output recovery keys. Ordering is preserved. The keys must be base64-encoded from their original binary representation. The size of this array must be the same as recovery_shares. This is only available when using Auto Unseal.",
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -82,18 +89,18 @@ func resourceInit() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			argRootTokenPGPKey: {
+			argRootTokenPGPKeyInit: {
 				Description: "Specifies a PGP public key used to encrypt the initial root token. The key must be base64-encoded from its original binary representation.",
 				Type:        schema.TypeString,
 				Optional:    true,
 			},
-			argRootToken: {
+			argRootTokenInit: {
 				Description: "The Vault Root Token.",
 				Type:        schema.TypeString,
 				Computed:    true,
 				Sensitive:   true,
 			},
-			argKeys: {
+			argKeysInit: {
 				Description: "The unseal keys.",
 				Type:        schema.TypeList,
 				Computed:    true,
@@ -102,7 +109,7 @@ func resourceInit() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			argKeysBase64: {
+			argKeysBase64Init: {
 				Description: "The unseal keys, base64 encoded.",
 				Type:        schema.TypeList,
 				Computed:    true,
@@ -111,7 +118,7 @@ func resourceInit() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			argRecoveryKeys: {
+			argRecoveryKeysInit: {
 				Description: "The recovery keys",
 				Type:        schema.TypeList,
 				Computed:    true,
@@ -120,7 +127,7 @@ func resourceInit() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			argRecoveryKeysBase64: {
+			argRecoveryKeysBase64Init: {
 				Description: "The recovery keys, base64 encoded.",
 				Type:        schema.TypeList,
 				Computed:    true,
@@ -136,13 +143,13 @@ func resourceInit() *schema.Resource {
 func resourceInitCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	// use the meta value to retrieve your client from the provider configure method
 	client := meta.(*apiClient)
-	secretShares := d.Get(argSecretShares).(int)
-	secretThreshold := d.Get(argSecretThreshold).(int)
-	recoveryShares := d.Get(argRecoveryShares).(int)
-	recoveryThreshold := d.Get(argRecoveryThreshold).(int)
-	pgpKeys := d.Get(argPGPKeys).([]interface{})
-	recoveryPGPKeys := d.Get(argRecoveryPGPKeys).([]interface{})
-	rootTokenPGPKey := d.Get(argRootTokenPGPKey).(string)
+	secretShares := d.Get(argSecretSharesInit).(int)
+	secretThreshold := d.Get(argSecretThresholdInit).(int)
+	recoveryShares := d.Get(argRecoverySharesInit).(int)
+	recoveryThreshold := d.Get(argRecoveryThresholdInit).(int)
+	pgpKeys := d.Get(argPGPKeysInit).([]interface{})
+	recoveryPGPKeys := d.Get(argRecoveryPGPKeysInit).([]interface{})
+	rootTokenPGPKey := d.Get(argRootTokenPGPKeyInit).(string)
 
 	pgpKeysList := make([]string, len(pgpKeys))
 	for i, pgpKey := range pgpKeys {
@@ -285,7 +292,7 @@ func resourceInitCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	logDebug("response: %v", res)
 
-	if err := updateState(d, client.client.Address()); err != nil {
+	if err := updateState(d, client.client.Address(), res); err != nil {
 		logError("failed to update state: %v", err)
 		return diag.FromErr(err)
 	}
@@ -316,8 +323,62 @@ func resourceInitDelete(ctx context.Context, d *schema.ResourceData, meta interf
 	return diag.Diagnostics{}
 }
 
-func updateState(d *schema.ResourceData, id string) error {
+func resourceInitImporter(c context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	client := meta.(*apiClient)
+	// Id should be a file scheme URL: file://path_to_file.json
+	// The json file schema should be the same as what's returned from the sys/init API (i.e. a InitResponse)
+	id := d.Id()
+
+	u, err := url.Parse(id)
+	if err != nil {
+		logError("failed parsing id url %v", err)
+		return nil, err
+	}
+
+	if u.Scheme != "file" {
+		logError("unsupported scheme")
+		return nil, errors.New("unsupported scheme")
+	}
+
+	fc, err := ioutil.ReadFile(filepath.Join(u.Host, u.Path))
+	if err != nil {
+		logError("failed reading file %v", err)
+		return nil, err
+	}
+
+	var initResponse api.InitResponse
+	if err := json.Unmarshal(fc, &initResponse); err != nil {
+		logError("failed unmarshalling json: %v", err)
+		return nil, err
+	}
+
+	if err := updateState(d, client.client.Address(), &initResponse); err != nil {
+		logError("failed to update state: %v", err)
+		return nil, err
+	}
+
+	return []*schema.ResourceData{d}, nil
+}
+
+func updateState(d *schema.ResourceData, id string, res *api.InitResponse) error {
 	d.SetId(id)
+
+	if err := d.Set(argRootTokenInit, res.RootToken); err != nil {
+		return err
+	}
+	if err := d.Set(argKeysInit, res.Keys); err != nil {
+		return err
+	}
+	if err := d.Set(argKeysBase64Init, res.KeysB64); err != nil {
+		return err
+	}
+	if err := d.Set(argRecoveryKeysInit, res.RecoveryKeys); err != nil {
+		return err
+	}
+	if err := d.Set(argRecoveryKeysBase64Init, res.RecoveryKeysB64); err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -8,15 +8,15 @@ import (
 )
 
 const (
-	argInitialized = "initialized"
+	argSealed = "sealed"
 )
 
-func providerDatasourceInit() *schema.Resource {
+func providerDatasourceSeal() *schema.Resource {
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
 		Description: "Resource for vault operator init",
 
-		ReadContext: providerDatasourceReadInit,
+		ReadContext: providerDatasourceReadSeal,
 
 		Schema: map[string]*schema.Schema{
 			argInitialized: {
@@ -28,20 +28,20 @@ func providerDatasourceInit() *schema.Resource {
 	}
 }
 
-func providerDatasourceReadInit(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func providerDatasourceReadSeal(_ context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*apiClient)
 
 	d.SetId(client.url)
 
-	res, err := client.client.Sys().InitStatus()
+	res, err := client.client.Sys().SealStatus()
 	if err != nil {
-		logError("failed to read init status from Vault: %v", err)
+		logError("failed to read seal status from Vault: %v", err)
 		return diag.FromErr(err)
 	}
 
 	logDebug("response: %v", res)
 
-	if err := d.Set(argInitialized, res); err != nil {
+	if err := d.Set(argSealed, res); err != nil {
 		return diag.FromErr(err)
 	}
 
