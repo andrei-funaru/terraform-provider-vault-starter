@@ -2,15 +2,11 @@ package provider
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -48,9 +44,6 @@ func resourceInit() *schema.Resource {
 		ReadContext:   resourceInitRead,
 		UpdateContext: resourceInitUpdate,
 		DeleteContext: resourceInitDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: resourceInitImporter,
-		},
 
 		Schema: map[string]*schema.Schema{
 			argSecretShares: {
@@ -292,7 +285,7 @@ func resourceInitCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 	logDebug("response: %v", res)
 
-	if err := updateState(d, client.client.Address(), res); err != nil {
+	if err := updateState(d, client.client.Address()); err != nil {
 		logError("failed to update state: %v", err)
 		return diag.FromErr(err)
 	}
@@ -323,62 +316,8 @@ func resourceInitDelete(ctx context.Context, d *schema.ResourceData, meta interf
 	return diag.Diagnostics{}
 }
 
-func resourceInitImporter(c context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	client := meta.(*apiClient)
-	// Id should be a file scheme URL: file://path_to_file.json
-	// The json file schema should be the same as what's returned from the sys/init API (i.e. a InitResponse)
-	id := d.Id()
-
-	u, err := url.Parse(id)
-	if err != nil {
-		logError("failed parsing id url %v", err)
-		return nil, err
-	}
-
-	if u.Scheme != "file" {
-		logError("unsupported scheme")
-		return nil, errors.New("unsupported scheme")
-	}
-
-	fc, err := ioutil.ReadFile(filepath.Join(u.Host, u.Path))
-	if err != nil {
-		logError("failed reading file %v", err)
-		return nil, err
-	}
-
-	var initResponse api.InitResponse
-	if err := json.Unmarshal(fc, &initResponse); err != nil {
-		logError("failed unmarshalling json: %v", err)
-		return nil, err
-	}
-
-	if err := updateState(d, client.client.Address(), &initResponse); err != nil {
-		logError("failed to update state: %v", err)
-		return nil, err
-	}
-
-	return []*schema.ResourceData{d}, nil
-}
-
-func updateState(d *schema.ResourceData, id string, res *api.InitResponse) error {
+func updateState(d *schema.ResourceData, id string) error {
 	d.SetId(id)
-
-	if err := d.Set(argRootToken, res.RootToken); err != nil {
-		return err
-	}
-	if err := d.Set(argKeys, res.Keys); err != nil {
-		return err
-	}
-	if err := d.Set(argKeysBase64, res.KeysB64); err != nil {
-		return err
-	}
-	if err := d.Set(argRecoveryKeys, res.RecoveryKeys); err != nil {
-		return err
-	}
-	if err := d.Set(argRecoveryKeysBase64, res.RecoveryKeysB64); err != nil {
-		return err
-	}
-
 	return nil
 }
 
