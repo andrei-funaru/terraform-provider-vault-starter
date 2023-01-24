@@ -9,16 +9,16 @@ description: |-
 ```terraform
 terraform {
   required_providers {
-    vault-unseal = {
+    vaultstarter = {
       version = "0.0.1"
-      source  = "andrei-funaru/vault-unseal"
+      source  = "andrei-funaru/vault-starter"
     }
   }
 }
 
-provider "vault-unseal" {
+provider "vault-starter" {
   # example configuration here
-  vault_url = "http://vault:8200"
+  vault_url = "http://127.0.0.1:8200"
   kube_config {
     path       = "~/.kube/config"
     namespace  = "vault"

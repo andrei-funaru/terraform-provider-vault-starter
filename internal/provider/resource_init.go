@@ -56,11 +56,13 @@ func resourceInit() *schema.Resource {
 				Description: "Specifies the number of shares to split the master key into.",
 				Type:        schema.TypeInt,
 				Optional:    true,
+				Default:     5,
 			},
 			argSecretThresholdInit: {
 				Description: "Specifies the number of shares required to reconstruct the master key.",
 				Type:        schema.TypeInt,
 				Optional:    true,
+				Default:     3,
 			},
 			argRecoverySharesInit: {
 				Description: "Specifies the number of shares to split the recovery key into.",

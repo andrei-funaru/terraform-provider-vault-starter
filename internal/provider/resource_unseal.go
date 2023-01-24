@@ -40,11 +40,13 @@ func resourceUnseal() *schema.Resource {
 				Description: "Specifies the number of shares the master key was split  into.",
 				Type:        schema.TypeInt,
 				Optional:    true,
+				Default:     5,
 			},
 			argSecretThresholdUnseal: {
 				Description: "Specifies the number of shares required to reconstruct the master key.",
 				Type:        schema.TypeInt,
 				Optional:    true,
+				Default:     3,
 			},
 			argKeysUnseal: {
 				Description: "The unseal keys.",
