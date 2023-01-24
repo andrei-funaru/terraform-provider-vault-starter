@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -190,7 +189,7 @@ func resourceCreate(ctx context.Context, d *schema.ResourceData, meta interface{
 	}
 	file, _ := json.MarshalIndent(res, "", " ")
 
-	_ = ioutil.WriteFile("root_credentials.json", file, 0644)
+	_ = os.WriteFile("root_credentials.json", file, 0644)
 
 	name := metav1.ObjectMeta{
 		Name: "vault-credentials",

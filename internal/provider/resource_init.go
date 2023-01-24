@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -303,30 +302,19 @@ func resourceInitCreate(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func resourceInitRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// use the meta value to retrieve your client from the provider configure method
-	// client := meta.(*apiClient)
-
 	return diag.Diagnostics{}
 }
 
 func resourceInitUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// use the meta value to retrieve your client from the provider configure method
-	// client := meta.(*apiClient)
-
 	return diag.Diagnostics{}
 }
 
 func resourceInitDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	// use the meta value to retrieve your client from the provider configure method
-	// client := meta.(*apiClient)
-
 	return diag.Diagnostics{}
 }
 
 func resourceInitImporter(c context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	client := meta.(*apiClient)
-	// Id should be a file scheme URL: file://path_to_file.json
-	// The json file schema should be the same as what's returned from the sys/init API (i.e. a InitResponse)
 	id := d.Id()
 
 	u, err := url.Parse(id)
@@ -340,7 +328,7 @@ func resourceInitImporter(c context.Context, d *schema.ResourceData, meta interf
 		return nil, errors.New("unsupported scheme")
 	}
 
-	fc, err := ioutil.ReadFile(filepath.Join(u.Host, u.Path))
+	fc, err := os.ReadFile(filepath.Join(u.Host, u.Path))
 	if err != nil {
 		logError("failed reading file %v", err)
 		return nil, err

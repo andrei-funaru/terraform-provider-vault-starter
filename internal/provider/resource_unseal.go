@@ -3,14 +3,17 @@ package provider
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	combin "gonum.org/v1/gonum/stat/combin"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/portforward"
@@ -61,6 +64,8 @@ func resourceUnsealCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	// SecretThresholdUnseal := d.Get(argSecretThresholdUnseal).(int)
 	// SecretSharesUnseal := d.Get(argSecretSharesUnseal).(int)
 	KeysUnseal := d.Get(argKeysUnseal).([]interface{})
+	SecretSharesUnseal := d.Get(argSecretSharesUnseal).(int)
+	SecretThresholdUnseal := d.Get(argSecretThresholdUnseal).(int)
 	stopCh := make(chan struct{}, 1)
 	readyCh := make(chan struct{})
 
@@ -164,11 +169,9 @@ func resourceUnsealCreate(ctx context.Context, d *schema.ResourceData, meta inte
 			return diag.FromErr(err)
 		}
 	}
-	Keys_UnsealList := make([]string, len(KeysUnseal))
-	for i, unseal_key := range KeysUnseal {
-		Keys_UnsealList[i] = unseal_key.(string)
-		res, err := client.client.Sys().Unseal(Keys_UnsealList[i])
-
+	array := get_index_for_keys(SecretSharesUnseal, SecretThresholdUnseal)
+	for i := 0; i < len(array); i++ {
+		res, err := client.client.Sys().Unseal(KeysUnseal[array[i]].(string))
 		if err != nil {
 			logError("failed to unseal Vault: %v", err)
 			return diag.FromErr(err)
@@ -200,4 +203,13 @@ func resourceUnsealDelete(ctx context.Context, d *schema.ResourceData, meta inte
 func updateStateUnseal(d *schema.ResourceData, id string) error {
 	d.SetId(id)
 	return nil
+}
+
+func get_index_for_keys(shares int, threshold int) []int {
+	rand.Seed(time.Now().UnixNano())
+	combos := combin.Combinations(shares, threshold)
+	number := rand.Intn(len(combos))
+	fmt.Println(combos[number])
+	result := combos[number]
+	return result
 }
