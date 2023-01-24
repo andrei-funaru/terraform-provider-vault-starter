@@ -23,7 +23,7 @@ import (
 const (
 	argSecretSharesUnseal    = "secret_shares"
 	argSecretThresholdUnseal = "secret_threshold"
-	argKeysUnseal            = "unseal_keys"
+	argKeysUnseal            = "keys"
 )
 
 func resourceUnseal() *schema.Resource {

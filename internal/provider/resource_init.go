@@ -31,7 +31,7 @@ const (
 	argRecoveryKeysInit       = "recovery_keys"
 	argRecoveryKeysBase64Init = "recovery_keys_base64"
 	argRootTokenInit          = "root_token"
-	argKeysInit               = "init_keys"
+	argKeysInit               = "keys"
 	argKeysBase64Init         = "keys_base64"
 	argPGPKeysInit            = "pgp_keys"
 	argRecoveryPGPKeysInit    = "recovery_pgp_keys"

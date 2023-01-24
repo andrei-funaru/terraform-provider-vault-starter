@@ -20,7 +20,6 @@ const (
 	provider          = "vaultstarter"
 	resInit           = provider + "_init"
 	resUnseal         = provider + "_unseal"
-	resFull           = provider + "_full"
 	argVaultAddr      = "vault_addr"
 	argRequestHeaders = "request_headers"
 	argKubeConfig     = "kube_config"
@@ -42,7 +41,6 @@ func New(version string) func() *schema.Provider {
 			ResourcesMap: map[string]*schema.Resource{
 				resInit:   resourceInit(),
 				resUnseal: resourceUnseal(),
-				resFull:   resourceInitUnseal(),
 			},
 			DataSourcesMap: map[string]*schema.Resource{
 				resInit:   providerDatasourceInit(),
