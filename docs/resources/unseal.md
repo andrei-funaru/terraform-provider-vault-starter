@@ -24,6 +24,7 @@ resource "vaultstarter_unseal" "example" {
 ## Schema
 
 ### Required
+- **keys** (List of String, Sensitive) The unseal keys.
 
 ### Optional
 - **secret_shares** (Number) Specifies the number of shares to split the master key into.
@@ -33,6 +34,5 @@ resource "vaultstarter_unseal" "example" {
 - **id** (String) The ID of this resource.
 
 ### Read-Only
-- **keys** (List of String, Sensitive) The unseal keys.
 
 

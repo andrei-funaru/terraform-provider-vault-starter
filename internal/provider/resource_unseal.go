@@ -25,11 +25,11 @@ import (
 )
 
 const (
-	argSecretSharesUnseal    = "secret_shares"
-	argSecretThresholdUnseal = "secret_threshold"
-	argKeysUnseal            = "keys"
-	argPGPKeysUnseal         = "pgp_keys"
-	argpassphrase            = "passphrase"
+	argSecretShares    = "secret_shares"
+	argSecretThreshold = "secret_threshold"
+	argKeys            = "keys"
+	argPGPKeys         = "pgp_keys"
+	argpassphrase      = "passphrase"
 )
 
 func resourceUnseal() *schema.Resource {
@@ -42,19 +42,19 @@ func resourceUnseal() *schema.Resource {
 		UpdateContext: resourceUnsealUpdate,
 		DeleteContext: resourceUnsealDelete,
 		Schema: map[string]*schema.Schema{
-			argSecretSharesUnseal: {
+			argSecretShares: {
 				Description: "Specifies the number of shares the master key was split  into.",
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     5,
 			},
-			argSecretThresholdUnseal: {
+			argSecretThreshold: {
 				Description: "Specifies the number of shares required to reconstruct the master key.",
 				Type:        schema.TypeInt,
 				Optional:    true,
 				Default:     3,
 			},
-			argKeysUnseal: {
+			argKeys: {
 				Description: "The unseal keys.",
 				Type:        schema.TypeList,
 				Required:    true,
@@ -62,7 +62,7 @@ func resourceUnseal() *schema.Resource {
 					Type: schema.TypeString,
 				},
 			},
-			argPGPKeysUnseal: {
+			argPGPKeys: {
 				Description: "Specifies an array of PGP public keys used to decript the unseal keys. Ordering is preserved. The keys must be base64-encoded from their original binary representation. The size of this array must be the same as secret_shares.",
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -87,10 +87,10 @@ func resourceUnsealCreate(ctx context.Context, d *schema.ResourceData, meta inte
 	client := meta.(*apiClient)
 	// SecretThresholdUnseal := d.Get(argSecretThresholdUnseal).(int)
 	// SecretSharesUnseal := d.Get(argSecretSharesUnseal).(int)
-	pgpKeys := d.Get(argPGPKeysUnseal).([]interface{})
-	Keys := d.Get(argKeysUnseal).([]interface{})
-	SecretShares := d.Get(argSecretSharesUnseal).(int)
-	SecretThreshold := d.Get(argSecretThresholdUnseal).(int)
+	pgpKeys := d.Get(argPGPKeys).([]interface{})
+	Keys := d.Get(argKeys).([]interface{})
+	SecretShares := d.Get(argSecretShares).(int)
+	SecretThreshold := d.Get(argSecretThreshold).(int)
 	passphrase := d.Get(argpassphrase).([]interface{})
 	stopCh := make(chan struct{}, 1)
 	readyCh := make(chan struct{})
@@ -200,18 +200,23 @@ func resourceUnsealCreate(ctx context.Context, d *schema.ResourceData, meta inte
 			return diag.FromErr(err)
 		}
 	}
+	KeysList := make([]string, len(Keys))
 	for i, key := range Keys {
-		decripted_key, err := get_decrypted_key(pgpKeys[i].(string), passphrase[i].(string), key.(string))
-		if err != nil {
-			logError("failed to unseal Vault: %v", err)
-			return diag.FromErr(err)
+		if len(pgpKeys) != 0 {
+			decripted_key, err := get_decrypted_key(pgpKeys[i].(string), passphrase[i].(string), key.(string))
+			if err != nil {
+				logError("failed to unseal Vault: %v", err)
+				return diag.FromErr(err)
+			}
+			KeysList[i] = decripted_key
+		} else {
+			KeysList[i] = key.(string)
 		}
-		Keys[i] = decripted_key
 	}
 	array := get_index_for_keys(SecretShares, SecretThreshold)
 
 	for i := 0; i < len(array); i++ {
-		res, err := client.client.Sys().Unseal(Keys[array[i]].(string))
+		res, err := client.client.Sys().Unseal(KeysList[array[i]])
 		if err != nil {
 			logError("failed to unseal Vault: %v", err)
 			return diag.FromErr(err)
